@@ -53,7 +53,7 @@ Located in the \`backend/training\` directory, this component is responsible for
 - **Model Testing**: Validating the model's performance (\`test.py\`)
 - **Repository Hygiene**: Managing generated artifacts and datasets with a local ignore file (\`.gitignore\`)
 
-The backend uses a dataset of approximately 15,000+ labeled URLs (both safe and malicious) to train a classifier that can identify potentially harmful links.
+The backend uses labeled URLs (both safe and malicious) to train a classifier that can identify potentially harmful links.
 
 ### 2. Mobile Application
 
@@ -71,7 +71,7 @@ Located in the \`mobile_app\` directory, this Flutter-based application provides
 
 ### Machine Learning Model
 
-- **Dataset**: Over 15,000 labeled URLs (safe=0, malicious=1)
+- **URLs**: uses labeled URLs (safe=0, malicious=1)
 - **Features**: Extracts characteristics from URLs such as length, special character counts, domain information, etc.
 - **Model Type**: Neural network classifier optimized for mobile deployment
 - **Format**: TensorFlow Lite (.tflite) for on-device inference
