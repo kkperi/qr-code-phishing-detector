@@ -132,10 +132,6 @@ This project was developed as a graduation project and demonstrates the integrat
 
 ## Resources
 
-- The full graduation project report is available in the repository as a PDF file
 - The model training code is extensively commented to explain the machine learning approach
 - The Flutter application code includes documentation for key components
 
-## License
-
-This project is intended for educational and personal use. 
