@@ -51,6 +51,7 @@ Located in the \`backend/training\` directory, this component is responsible for
 - **Model Training**: Training the machine learning model to detect malicious URLs (\`train_model.py\`)
 - **Model Conversion**: Converting the trained model to TFLite format for mobile deployment (\`convert_to_tflite.py\`)
 - **Model Testing**: Validating the model's performance (\`test.py\`)
+- **Repository Hygiene**: Managing generated artifacts and datasets with a local ignore file (\`.gitignore\`)
 
 The backend uses a dataset of approximately 15,000+ labeled URLs (both safe and malicious) to train a classifier that can identify potentially harmful links.
 
@@ -64,6 +65,7 @@ Located in the \`mobile_app\` directory, this Flutter-based application provides
 - Feature extraction from URLs for analysis
 - Integration with the TFLite model for classification
 - Visual indicators for safe/malicious URLs
+- A main home screen implementation in \`lib/screens/home_screen.dart\`
 
 ## Technical Details
 

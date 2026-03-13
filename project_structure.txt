@@ -9,6 +9,7 @@ project_root/
   │    └── test_result_2.png
   ├── backend/
   │    └── training/
+  │         ├── .gitignore
   │         ├── prepare_dataset.py
   │         ├── train_model.py
   │         ├── convert_to_tflite.py
@@ -30,6 +31,7 @@ project_root/
        ├── lib/
        │    ├── main.dart
        │    ├── screens/
+       │    │    └── home_screen.dart
        │    └── services/
        │         ├── url_analysis_phase1.dart
        │         ├── feature_extraction.dart
