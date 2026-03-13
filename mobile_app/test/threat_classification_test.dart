@@ -2,6 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:phishing_detector/services/model_inference.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('Threat Classification module', () {
     test('ML Classification - predictUrlFeatures returns a finite probability',
         () async {

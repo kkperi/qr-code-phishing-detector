@@ -23,6 +23,9 @@ List<double> extractFeatures(String url) {
   try {
     // URL'i parse et
     Uri parsed = Uri.parse(url);
+    if (parsed.host.isEmpty) {
+      throw const FormatException('Missing host');
+    }
     String domain = parsed.host.toLowerCase(); // Netloc
     String path = parsed.path.toLowerCase();
     String scheme = parsed.scheme.toLowerCase();
@@ -94,5 +97,13 @@ List<double> extractFeatures(String url) {
  */
 bool isIPAddress(String domain) {
   final ipRegex = RegExp(r'^(\d{1,3}\.){3}\d{1,3}$');
-  return ipRegex.hasMatch(domain);
+  if (!ipRegex.hasMatch(domain)) return false;
+
+  final parts = domain.split('.');
+  if (parts.length != 4) return false;
+  for (final part in parts) {
+    final value = int.tryParse(part);
+    if (value == null || value < 0 || value > 255) return false;
+  }
+  return true;
 }

@@ -150,6 +150,23 @@ class _HomeScreenState extends State<HomeScreen> {
   String?
       _predictionLabel; // Stores human-readable prediction label (Phishing/Safe)
 
+  _EvaluationMetrics? _evaluationMetrics;
+  bool _isMetricsLoading = false;
+  String? _metricsError;
+  int _analysisCount = 0;
+
+  // Stores recent scan results so we can compute metrics
+  // based on the user's previous scans.
+  final List<_ScanRecord> _scanHistory = [];
+  static const int _maxScanHistory = 50;
+  String? _lastScanId;
+
+  @override
+  void initState() {
+    super.initState();
+    // Lazy computation: metrics are calculated when the user requests them.
+  }
+
   /*
    * _navigateToScanner method
    * 
@@ -239,6 +256,8 @@ class _HomeScreenState extends State<HomeScreen> {
       String labelStr = label == 1 ? "Phishing" : "Safe";
 
       // Update the state with the result and stop loading
+      final scanId =
+          "${DateTime.now().millisecondsSinceEpoch}-${finalUrl.hashCode}";
       setState(() {
         _isLoading = false;
         _result =
@@ -250,7 +269,29 @@ class _HomeScreenState extends State<HomeScreen> {
         _featureVector = features;
         _predictionProbability = prob;
         _predictionLabel = labelStr;
+        _analysisCount += 1;
+        _lastScanId = scanId;
+
+        _scanHistory.insert(
+          0,
+          _ScanRecord(
+            id: scanId,
+            url: finalUrl,
+            probability: prob,
+            predictedLabel: label,
+            actualLabel: null, // filled by user after viewing result
+            inferenceTimeMs: null, // filled when metrics are computed
+          ),
+        );
+        if (_scanHistory.length > _maxScanHistory) {
+          _scanHistory.removeLast();
+        }
       });
+
+      // Automatically recompute evaluation metrics after every 3 analyses
+      if (_analysisCount % 3 == 0) {
+        _computeEvaluationMetrics();
+      }
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -258,6 +299,103 @@ class _HomeScreenState extends State<HomeScreen> {
             "An unexpected error occurred while analyzing the URL. Please try again.";
       });
     }
+  }
+
+  Future<void> _computeEvaluationMetrics() async {
+    if (_isMetricsLoading) return;
+    setState(() {
+      _isMetricsLoading = true;
+      _metricsError = null;
+    });
+
+    // Compute metrics based on user-labeled previous scans.
+    final labeled = _scanHistory.where((s) => s.actualLabel != null).toList();
+
+    if (labeled.isEmpty) {
+      setState(() {
+        _isMetricsLoading = false;
+        _metricsError =
+            "No labeled scans yet. After scanning, tap 'Mark as Safe' or 'Mark as Phishing', then recompute.";
+      });
+      return;
+    }
+
+    int tp = 0, tn = 0, fp = 0, fn = 0;
+    final inferenceTimesMs = <int>[];
+
+    for (final s in labeled) {
+      final predicted = s.probability >= 0.5 ? 1 : 0; // fixed threshold
+      final actual = s.actualLabel!;
+
+      if (predicted == 1 && actual == 1) tp++;
+      if (predicted == 0 && actual == 0) tn++;
+      if (predicted == 1 && actual == 0) fp++;
+      if (predicted == 0 && actual == 1) fn++;
+
+      if (s.inferenceTimeMs != null) {
+        inferenceTimesMs.add(s.inferenceTimeMs!);
+      }
+    }
+
+    final total = tp + tn + fp + fn;
+    double safeDiv(double a, double b) => b == 0 ? 0 : (a / b);
+
+    final double accuracy =
+        (tp + tn).toDouble() / total.toDouble();
+    final precision = safeDiv(tp.toDouble(), (tp + fp).toDouble());
+    final recall = safeDiv(tp.toDouble(), (tp + fn).toDouble());
+    final double f1 = (precision + recall) == 0
+        ? 0.0
+        : 2.0 * (precision * recall) / (precision + recall);
+
+    int avg(List<int> xs) =>
+        xs.isEmpty ? 0 : (xs.reduce((a, b) => a + b) / xs.length).round();
+    int maxVal(List<int> xs) => xs.isEmpty ? 0 : xs.reduce((a, b) => a > b ? a : b);
+
+    setState(() {
+      _evaluationMetrics = _EvaluationMetrics(
+        tp: tp,
+        tn: tn,
+        fp: fp,
+        fn: fn,
+        accuracy: accuracy,
+        precision: precision,
+        recall: recall,
+        f1Score: f1,
+        avgInferenceTimeMs: avg(inferenceTimesMs),
+        maxInferenceTimeMs: maxVal(inferenceTimesMs),
+        avgTotalPipelineTimeMs: 0,
+        maxTotalPipelineTimeMs: 0,
+        evaluatedCount: total,
+        skippedCount: _scanHistory.length - labeled.length,
+        threshold: 0.5,
+      );
+      _isMetricsLoading = false;
+      _metricsError = null;
+    });
+  }
+
+  void _openMetricsPanel() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 8,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+            ),
+            child: SingleChildScrollView(
+              child: _buildEvaluationMetricsCard(inPanel: true),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   /*
@@ -296,20 +434,9 @@ class _HomeScreenState extends State<HomeScreen> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.info_outline),
-            onPressed: () {
-              showAboutDialog(
-                context: context,
-                applicationName: 'URL Phishing Detector',
-                applicationVersion: '1.0.0',
-                applicationIcon: const Icon(Icons.security),
-                children: const [
-                  Text(
-                    "This application detects whether the URLs entered or scanned are phishing.\n\n-Made by Ali Asım Coşkun",
-                  ),
-                ],
-              );
-            },
+            icon: const Icon(Icons.analytics_outlined),
+            tooltip: "Evaluation metrics",
+            onPressed: _openMetricsPanel,
           ),
         ],
       ),
@@ -432,7 +559,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 20),
               if (_prepResult != null && !_isLoading)
                 _buildPipelineDetailsCard(),
+              const SizedBox(height: 20),
+              _buildEvaluationMetricsCard(),
               const SizedBox(height: 20), // Adds vertical spacing
+
+              if (_lastScanId != null && !_isLoading) ...[
+                _buildScanLabelCard(),
+                const SizedBox(height: 20),
+              ],
 
               // Redirect Button
               if (_lastUrl.isNotEmpty && !_isLoading)
@@ -791,6 +925,362 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  // Helper widget that shows the evaluation metrics used
+  // when the model was trained and assessed (as in the report).
+  Widget _buildEvaluationMetricsCard({bool inPanel = false}) {
+    Widget sectionTitle(String text) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 4.0, bottom: 4.0),
+        child: Text(
+          text,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    }
+
+    Widget metricRow(String name, String description,
+        {String? formula, String? value}) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                if (value != null)
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(
+              description,
+              style: const TextStyle(fontSize: 13),
+            ),
+            if (formula != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                formula,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
+    }
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    "Evaluation Metrics",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: _isMetricsLoading ? null : _computeEvaluationMetrics,
+                  child: Text(_evaluationMetrics == null
+                      ? "Compute"
+                      : "Recompute"),
+                ),
+              ],
+            ),
+            if (!inPanel)
+              const Padding(
+                padding: EdgeInsets.only(top: 2.0),
+                child: Text(
+                  "Tip: You can also open this from the top-right Metrics button.",
+                  style: TextStyle(fontSize: 12, color: Colors.black54),
+                ),
+              ),
+            if (_isMetricsLoading)
+              const Padding(
+                padding: EdgeInsets.only(top: 8.0),
+                child: LinearProgressIndicator(),
+              ),
+            if (_metricsError != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(
+                  _metricsError!,
+                  style: const TextStyle(color: Colors.redAccent),
+                ),
+              ),
+            const SizedBox(height: 12),
+            sectionTitle("6.1 Classification Performance Metrics"),
+            if (_evaluationMetrics != null) ...[
+              metricRow(
+                "Confusion Matrix",
+                "Counts on the built-in evaluation set (TP, TN, FP, FN).",
+                value:
+                    "TP=${_evaluationMetrics!.tp}  TN=${_evaluationMetrics!.tn}  FP=${_evaluationMetrics!.fp}  FN=${_evaluationMetrics!.fn}",
+              ),
+              metricRow(
+                "Evaluated samples",
+                "Number of labeled URLs scored inside the app.",
+                value: _evaluationMetrics!.evaluatedCount.toString(),
+              ),
+              metricRow(
+                "Skipped samples",
+                "URLs skipped due to network/DNS failures or model errors on device.",
+                value: _evaluationMetrics!.skippedCount.toString(),
+              ),
+              metricRow(
+                "Decision threshold",
+                "Fixed probability threshold used to label phishing vs safe.",
+                value: _evaluationMetrics!.threshold.toStringAsFixed(2),
+              ),
+            ],
+            metricRow(
+              "Accuracy",
+              "Measures the overall correctness of URL classification as Safe or Phishing.",
+              formula: "Accuracy = (TP + TN) / (TP + TN + FP + FN)",
+              value: _evaluationMetrics == null
+                  ? null
+                  : "${(_evaluationMetrics!.accuracy * 100).toStringAsFixed(2)}%",
+            ),
+            metricRow(
+              "Precision",
+              "Indicates how many URLs predicted as phishing are actually phishing.",
+              formula: "Precision = TP / (TP + FP)",
+              value: _evaluationMetrics == null
+                  ? null
+                  : "${(_evaluationMetrics!.precision * 100).toStringAsFixed(2)}%",
+            ),
+            metricRow(
+              "Recall (Sensitivity)",
+              "Measures the ability of the system to correctly detect phishing URLs.",
+              formula: "Recall = TP / (TP + FN)",
+              value: _evaluationMetrics == null
+                  ? null
+                  : "${(_evaluationMetrics!.recall * 100).toStringAsFixed(2)}%",
+            ),
+            metricRow(
+              "F1-Score",
+              "Harmonic mean of precision and recall, balancing false positives and false negatives.",
+              formula: "F1-score = 2 × (Precision × Recall) / (Precision + Recall)",
+              value: _evaluationMetrics == null
+                  ? null
+                  : "${(_evaluationMetrics!.f1Score * 100).toStringAsFixed(2)}%",
+            ),
+            const SizedBox(height: 12),
+            sectionTitle("6.2 Efficiency and System-Level Metrics"),
+            metricRow(
+              "Inference Time",
+              "Time taken by the on-device ML model to classify a scanned QR code.",
+              value: _evaluationMetrics == null
+                  ? null
+                  : "avg ${_evaluationMetrics!.avgInferenceTimeMs} ms (max ${_evaluationMetrics!.maxInferenceTimeMs} ms)",
+            ),
+            metricRow(
+              "Redirection Resolution Success",
+              "Indicates how effectively shortened and multi-level redirected URLs are expanded.",
+            ),
+            metricRow(
+              "Mobile Suitability",
+              "Assesses whether the system performs efficiently on low-resource mobile devices.",
+            ),
+            metricRow(
+              "Real-Time Performance",
+              "Ensures that phishing detection occurs before the user is redirected to the target site.",
+              value: _evaluationMetrics == null
+                  ? null
+                  : "avg ${_evaluationMetrics!.avgTotalPipelineTimeMs} ms (max ${_evaluationMetrics!.maxTotalPipelineTimeMs} ms)",
+            ),
+            if (_evaluationMetrics == null && !_isMetricsLoading)
+              const Padding(
+                padding: EdgeInsets.only(top: 8.0),
+                child: Text(
+                  "Tap Compute to calculate metrics on this device.",
+                  style: TextStyle(fontSize: 13, color: Colors.black54),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScanLabelCard() {
+    final id = _lastScanId;
+    if (id == null) return const SizedBox.shrink();
+
+    final idx = _scanHistory.indexWhere((s) => s.id == id);
+    if (idx < 0) return const SizedBox.shrink();
+
+    final scan = _scanHistory[idx];
+    final actual = scan.actualLabel;
+
+    String actualText() {
+      if (actual == null) return "Not labeled yet";
+      return actual == 1 ? "Phishing" : "Safe";
+    }
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Label this scan (for metrics)",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              "Actual label: ${actualText()}",
+              style: const TextStyle(color: Colors.black87),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      setState(() {
+                        _scanHistory[idx] =
+                            _scanHistory[idx].copyWith(actualLabel: 0);
+                      });
+                    },
+                    child: const Text("Mark as Safe"),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      setState(() {
+                        _scanHistory[idx] =
+                            _scanHistory[idx].copyWith(actualLabel: 1);
+                      });
+                    },
+                    child: const Text("Mark as Phishing"),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "After labeling a few scans, open Metrics and tap Compute/Recompute.",
+              style: const TextStyle(fontSize: 12, color: Colors.black54),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LabeledUrl {
+  const _LabeledUrl(this.url, this.label);
+  final String url;
+  final int label; // 0 = Safe, 1 = Phishing
+}
+
+class _EvaluationMetrics {
+  const _EvaluationMetrics({
+    required this.tp,
+    required this.tn,
+    required this.fp,
+    required this.fn,
+    required this.accuracy,
+    required this.precision,
+    required this.recall,
+    required this.f1Score,
+    required this.avgInferenceTimeMs,
+    required this.maxInferenceTimeMs,
+    required this.avgTotalPipelineTimeMs,
+    required this.maxTotalPipelineTimeMs,
+    required this.evaluatedCount,
+    required this.skippedCount,
+    required this.threshold,
+  });
+
+  final int tp;
+  final int tn;
+  final int fp;
+  final int fn;
+
+  final double accuracy;
+  final double precision;
+  final double recall;
+  final double f1Score;
+
+  final int avgInferenceTimeMs;
+  final int maxInferenceTimeMs;
+  final int avgTotalPipelineTimeMs;
+  final int maxTotalPipelineTimeMs;
+
+  final int evaluatedCount;
+  final int skippedCount;
+  final double threshold;
+}
+
+class _ScanRecord {
+  const _ScanRecord({
+    required this.id,
+    required this.url,
+    required this.probability,
+    required this.predictedLabel,
+    required this.actualLabel,
+    required this.inferenceTimeMs,
+  });
+
+  final String id;
+  final String url;
+  final double probability;
+  final int predictedLabel; // 0/1 computed using 0.5 at scan time
+  final int? actualLabel; // 0/1 set by user
+  final int? inferenceTimeMs;
+
+  _ScanRecord copyWith({int? actualLabel}) {
+    return _ScanRecord(
+      id: id,
+      url: url,
+      probability: probability,
+      predictedLabel: predictedLabel,
+      actualLabel: actualLabel,
+      inferenceTimeMs: inferenceTimeMs,
     );
   }
 }
