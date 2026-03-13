@@ -59,13 +59,13 @@ The backend uses a dataset of approximately 15,000+ labeled URLs (both safe and 
 
 Located in the \`mobile_app\` directory, this Flutter-based application provides:
 
-- A user interface for scanning QR codes
-- Integration with the device's camera
-- URL extraction from QR codes
+- A user interface for scanning QR codes and entering URLs manually
+- Integration with the device's camera via a dedicated QR scanning screen
+- URL extraction and normalization from QR codes or typed input
 - Feature extraction from URLs for analysis
 - Integration with the TFLite model for classification
-- Visual indicators for safe/malicious URLs
-- A main home screen implementation in \`lib/screens/home_screen.dart\`
+- Visual indicators and basic metrics for safe/malicious URLs
+- A main \`HomeScreen\` implementation defined in \`lib/main.dart\`
 
 ## Technical Details
 
