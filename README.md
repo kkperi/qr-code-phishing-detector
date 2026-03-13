@@ -1,6 +1,6 @@
-# 🛡️ Mobile QR Code Scanner with Malicious URL Detection
+# Mobile QR Code Scanner with Malicious URL Detection
 
-## 📋 Overview
+## Overview
 
 This project combines mobile technology with machine learning to create a QR code scanner application that can detect potentially malicious URLs. When a user scans a QR code containing a URL, the app not only decodes the QR code but also analyzes the URL to determine if it might be a security threat.
 
@@ -10,7 +10,7 @@ This project combines mobile technology with machine learning to create a QR cod
   <em>General Concept of the Project</em>
 </p>
 
-## 🚀 Features
+## Features
 
 - **QR Code Scanning**: Quickly scan any QR code using your device's camera
 - **Real-time URL Analysis**: Immediate classification of URLs as safe or potentially malicious
@@ -18,7 +18,7 @@ This project combines mobile technology with machine learning to create a QR cod
 - **Lightweight Implementation**: Model is optimized for mobile performance using TFLite
 - **User-friendly Interface**: Clean, intuitive design with clear security indicators
 
-## 📱 App Screenshots
+## App Screenshots
 
 *Screenshots showing the QR scanning interface and security analysis results*
 <p align="center">
@@ -30,16 +30,16 @@ This project combines mobile technology with machine learning to create a QR cod
 <p align="center">
   <img src="screenshots/test_result_1.png" alt="Safe URL Result" width="400">
   <br>
-  <em>Secure URL Result</em>
+  <em>Harmful URL Result</em>
 </p>
 
 <p align="center">
   <img src="screenshots/test_result_2.png" alt="Malicious URL Result" width="400">
   <br>
-  <em>Harmful URL Detection</em>
+  <em>Secure URL Detection</em>
 </p>
 
-## 🏗️ Project Structure
+## Project Structure
 
 The project is divided into two main components:
 
@@ -65,7 +65,7 @@ Located in the \`mobile_app\` directory, this Flutter-based application provides
 - Integration with the TFLite model for classification
 - Visual indicators for safe/malicious URLs
 
-## 🧪 Technical Details
+## Technical Details
 
 ### Machine Learning Model
 
@@ -81,7 +81,7 @@ Located in the \`mobile_app\` directory, this Flutter-based application provides
 - **On-device Inference**: Performs URL classification directly on the device without requiring internet connection
 - **Permissions**: Camera access for QR scanning
 
-## 🔧 How It Works
+## How It Works
 
 1. User opens the app and points their camera at a QR code
 2. The app decodes the QR code and extracts the URL
@@ -90,11 +90,11 @@ Located in the \`mobile_app\` directory, this Flutter-based application provides
 5. The app displays the result to the user, indicating whether the URL is safe or potentially malicious
 6. The user can then decide whether to visit the link or not
 
-## 📊 Performance
+## Performance
 
 The model achieves high accuracy in distinguishing between safe and malicious URLs, with detailed performance metrics available in the graduation project report. The on-device classification happens in milliseconds, providing users with immediate security feedback.
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -116,7 +116,7 @@ The model achieves high accuracy in distinguishing between safe and malicious UR
    flutter run
    ```
 
-## 🔒 Security Considerations
+## Security Considerations
 
 This application is designed to provide an additional layer of security when interacting with QR codes in public or unknown environments. However, it should not be considered a replacement for comprehensive security practices:
 
@@ -124,16 +124,16 @@ This application is designed to provide an additional layer of security when int
 - Keep your device and applications updated
 - Use additional security tools for critical activities
 
-## 👨‍💻 Development Notes
+## Development Notes
 
 This project was developed as a graduation project and demonstrates the integration of machine learning with mobile technology to address a common security concern.
 
-## 📚 Resources
+## Resources
 
 - The full graduation project report is available in the repository as a PDF file
 - The model training code is extensively commented to explain the machine learning approach
 - The Flutter application code includes documentation for key components
 
-## 📄 License
+## License
 
 This project is intended for educational and personal use. 

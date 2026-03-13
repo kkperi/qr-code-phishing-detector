@@ -1,29 +1,46 @@
 project_root/
+  ├── README.md
+  ├── requirements.txt
+  ├── project_structure.txt
+  ├── screenshots/
+  │    ├── concept.png
+  │    ├── mobile_app.png
+  │    ├── test_result_1.png
+  │    └── test_result_2.png
   ├── backend/
   │    └── training/
-  │        ├── data/
-  │        │   └── dataset.csv
-  │        ├── prepare_dataset.py
-  │        ├── train_model.py
-  │        ├── convert_to_tflite.py
-  │        ├── test.py
-  │        └── model_save/
-  │             ├── model.keras
-  │             └── model.tflite
-  │
-  ├── mobile_app/
-  │     ├── pubspec.yaml
-  │     ├── android/
-  │     ├── lib/
-  │     │   ├── main.dart
-  │     │   ├── screens/
-  │     │   │   └── home_screen.dart
-  │     │   └── services/
-  │     │       ├── feature_extraction.dart
-  │     │       ├── url_expander.dart
-  │     │       └── model_inference.dart
-  │     ├── assets/
-  │     │   └── model.tflite
-  │     └── README.md
-  │
-  └── Graduation_Project_Report_200104004067_AliAsim_Coskun.pdf
+  │         ├── prepare_dataset.py
+  │         ├── train_model.py
+  │         ├── convert_to_tflite.py
+  │         └── test.py
+  └── mobile_app/
+       ├── pubspec.yaml
+       ├── pubspec.lock
+       ├── analysis_options.yaml
+       ├── phishing_detector.iml
+       ├── android/
+       ├── ios/
+       ├── linux/
+       ├── macos/
+       ├── web/
+       ├── windows/
+       ├── tool/
+       ├── assets/
+       │    └── model.tflite
+       ├── lib/
+       │    ├── main.dart
+       │    ├── screens/
+       │    └── services/
+       │         ├── url_analysis_phase1.dart
+       │         ├── feature_extraction.dart
+       │         ├── url_expander.dart
+       │         ├── model_inference.dart
+       │         ├── model_inference_native.dart
+       │         └── model_inference_web.dart
+       ├── test/
+       │    ├── url_preparation_test.dart
+       │    ├── domain_network_analysis_test.dart
+       │    ├── feature_extraction_test.dart
+       │    ├── threat_classification_test.dart
+       │    └── widget_test.dart
+       └── README.md
