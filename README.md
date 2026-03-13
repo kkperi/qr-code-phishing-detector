@@ -94,7 +94,7 @@ Located in the \`mobile_app\` directory, this Flutter-based application provides
 
 ## Performance
 
-The model achieves high accuracy in distinguishing between safe and malicious URLs, with detailed performance metrics available in the graduation project report. The on-device classification happens in milliseconds, providing users with immediate security feedback.
+The model achieves high accuracy in distinguishing between safe and malicious URLs, with detailed performance metrics available in the CIP project report. The on-device classification happens in milliseconds, providing users with immediate security feedback.
 
 ## Getting Started
 
@@ -128,10 +128,10 @@ This application is designed to provide an additional layer of security when int
 
 ## Development Notes
 
-This project was developed as a graduation project and demonstrates the integration of machine learning with mobile technology to address a common security concern.
+This project was developed as a CIP project and demonstrates the integration of machine learning with mobile technology to address a common security concern.
 
 ## Resources
 
 - The model training code is extensively commented to explain the machine learning approach
-- The Flutter application code includes documentation for key components
+
 
